@@ -1,0 +1,4 @@
+var kvmNameFromQuery = context.getVariable('request.queryparam.kvmName');
+context.setVariable('kvm.name', kvmNameFromQuery);
+
+// This code will still set 'kvm.name' to an empty string because 'kvmNameFromQuery' is empty.
