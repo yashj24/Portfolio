@@ -1,4 +1,27 @@
-var kvmNameFromQuery = context.getVariable('request.queryparam.kvmName');
-context.setVariable('kvm.name', kvmNameFromQuery);
+var kvmName = context.getVariable('request.queryparam.kvmName');
 
-// This code will still set 'kvm.name' to an empty string because 'kvmNameFromQuery' is empty.
+// Check if the KVM name is provided.
+if (kvmName) {
+    // Construct the variable name for the KVM lookup.
+    var kvmLookupVariable = kvmName + '.myKey'; 
+    
+    // Get the value from the KVM.
+    // Apigee automatically caches KVMs. The syntax `context.getVariable('kvmName.kvmKey')`
+    // is a standard way to retrieve a cached value.
+    var kvmValue = context.getVariable(kvmLookupVariable);
+    
+    // Set the value into a new flow variable for later use.
+    if (kvmValue) {
+        context.setVariable('kvm.value', kvmValue);
+    } else {
+        context.setVariable('kvm.error', 'Value not found in KVM: ' + kvmName);
+    }
+
+} else {
+    // If the KVM name is missing, set an error variable.
+    // This is a much better approach than failing silently.
+    context.setVariable('kvm.error', 'KVM name not provided in query parameter "kvmName".');
+    // You could also set a fault variable to stop the flow here.
+    // context.setVariable('flow.fault.errorcode', '400');
+    // context.setVariable('flow.fault.reason', 'Bad Request');
+}
