@@ -17,20 +17,4 @@ export const handler = async (event: any) => {
 
   await client.send(new PutEventsCommand(params));
   return {};
-};      },
-    });
-
-    // Allow Lambda to put events into cross-account EventBridge
-    forwarder.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['events:PutEvents'],
-      resources: [`arn:aws:events:<CONSUMER_REGION>:<ACCOUNT_B_ID>:event-bus/CrossAccountLogsBus`],
-    }));
-
-    // Subscription filter: forward all logs to Lambda
-    new logs.SubscriptionFilter(this, 'LogsToForwarder', {
-      logGroup,
-      destination: new logs_destinations.LambdaDestination(forwarder),
-      filterPattern: logs.FilterPattern.allEvents(),
-    });
-  }
-}
+};
