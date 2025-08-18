@@ -1,48 +1,23 @@
-import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-import * as logs from 'aws-cdk-lib/aws-logs';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as logs_destinations from 'aws-cdk-lib/aws-logs-destinations';
-import * as iam from 'aws-cdk-lib/aws-iam';
+import { EventBridgeClient, PutEventsCommand } from "@aws-sdk/client-eventbridge";
 
-export class LogsProducerStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
-    super(scope, id, props);
+const client = new EventBridgeClient({ region: process.env.TARGET_REGION });
+const busName = process.env.TARGET_BUS!;
 
-    const logGroup = new logs.LogGroup(this, 'MyAppLogs', {
-      logGroupName: '/aws/my/app',
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
+export const handler = async (event: any) => {
+  console.log("Received log event:", JSON.stringify(event));
 
-    const forwarder = new lambda.Function(this, 'LogsForwarderLambda', {
-      runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        const { EventBridgeClient, PutEventsCommand } = require('@aws-sdk/client-eventbridge');
+  const params = {
+    Entries: [{
+      Source: "cross.account.logs",
+      DetailType: "LogEvent",
+      Detail: JSON.stringify(event),
+      EventBusName: busName
+    }]
+  };
 
-        const client = new EventBridgeClient({ region: process.env.TARGET_REGION });
-        const busName = process.env.TARGET_BUS;
-
-        exports.handler = async (event) => {
-          console.log("Received log event:", JSON.stringify(event));
-
-          const params = {
-            Entries: [{
-              Source: "cross.account.logs",
-              DetailType: "LogEvent",
-              Detail: JSON.stringify(event),
-              EventBusName: busName
-            }]
-          };
-
-          await client.send(new PutEventsCommand(params));
-          return {};
-        };
-      `),
-      environment: {
-        TARGET_REGION: '<CONSUMER_REGION>',
-        TARGET_BUS: 'CrossAccountLogsBus',
-      },
+  await client.send(new PutEventsCommand(params));
+  return {};
+};      },
     });
 
     // Allow Lambda to put events into cross-account EventBridge
